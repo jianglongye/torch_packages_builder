@@ -46,12 +46,12 @@ jobs:
 
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Checkout package repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set job matrix
         id: job-matrix
@@ -109,7 +109,7 @@ jobs:
         run: git config --global core.longpaths true
 
       - name: Checkout package repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.repo-tag }}
@@ -150,7 +150,7 @@ jobs:
         shell: bash
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: _builder
 
@@ -163,7 +163,7 @@ jobs:
         shell: bash
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -225,7 +225,7 @@ jobs:
           python -m build --wheel --no-isolation --outdir dist $SETUP_PY_DIR
         shell: bash
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         name: Upload wheels as artifacts
         with:
           name: wheel-${{ matrix.os }}-py${{ matrix.python-version }}-pt${{ matrix.torch-version }}-${{ matrix.compute-platform }}
@@ -270,13 +270,13 @@ jobs:
           df -h
 
       - name: Get wheels from artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: wheel-*
           merge-multiple: true
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "*.whl"
 
