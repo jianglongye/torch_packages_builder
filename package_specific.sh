@@ -15,8 +15,12 @@ fi
 
 if [[ $REPO == "NVlabs/nvdiffrast" ]]; then
   if [[ $OS == "Linux" ]]; then
-    sudo apt-get update
-    sudo apt-get install -y --no-install-recommends libegl1-mesa-dev libgles2-mesa-dev libglvnd-dev
+    if command -v dnf >/dev/null; then
+      dnf install -y mesa-libGL-devel mesa-libEGL-devel libglvnd-devel
+    else
+      sudo apt-get update
+      sudo apt-get install -y --no-install-recommends libegl1-mesa-dev libgles2-mesa-dev libglvnd-dev
+    fi
   fi
   # Rename *.cpp companions of same-named *.cu to avoid object-file collisions under build_ext.
   mv nvdiffrast/common/cudaraster/impl/RasterImpl.cpp nvdiffrast/common/cudaraster/impl/RasterImplHost.cpp

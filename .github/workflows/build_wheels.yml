@@ -72,6 +72,7 @@ jobs:
   build-wheels:
     needs: get-jobs
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
 
     strategy:
       fail-fast: false
@@ -79,7 +80,7 @@ jobs:
 
     steps:
       - name: Free up space
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && matrix.container == '' }}
         run: |
           echo "Disk space before cleanup:"
           df -h
@@ -163,9 +164,17 @@ jobs:
         shell: bash
 
       - name: Set up Python ${{ matrix.python-version }}
+        if: ${{ matrix.container == '' }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Set up Python ${{ matrix.python-version }} (manylinux)
+        if: ${{ matrix.container != '' }}
+        run: |
+          PYV=$(echo "${{ matrix.python-version }}" | tr -d .)
+          echo "/opt/python/cp${PYV}-cp${PYV}/bin" >> "$GITHUB_PATH"
+        shell: bash
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.compute-platform }}
         run: |
