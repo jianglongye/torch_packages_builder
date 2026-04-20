@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import re
 import sys
 
@@ -17,6 +18,12 @@ if not archs and hasattr(torch, "_C") and hasattr(torch._C, "_cuda_getArchFlags"
     except Exception:
         flags = ""
     archs = re.findall(r"(?:sm|compute)_\d+", flags)
+
+# cu118's ptxas segfaults on sm_90 codegen inside manylinux_2_28 (isolated
+# locally: 3.7-8.6 all compile, 9.0 crashes with sig11). Hopper was only
+# preview support in CUDA 11.8, and real Hopper/H100 users run cu121+.
+if os.environ.get("CUDA_VERSION") == "cu118":
+    archs = [a for a in archs if not re.fullmatch(r"(sm|compute)_90", a)]
 
 if not archs:
     print("Could not detect CUDA arch list from installed torch.", file=sys.stderr)
