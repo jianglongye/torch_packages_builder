@@ -127,6 +127,9 @@ jobs:
 
           HASH=""
           if [[ "${{ inputs.include-hash }}" == "true" ]]; then
+            # Inside the manylinux container, git refuses to run on the
+            # host-mounted workspace due to UID mismatch ("dubious ownership").
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
             HASH=$(git rev-parse --short HEAD)
           fi
 

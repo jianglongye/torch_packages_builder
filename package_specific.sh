@@ -27,3 +27,9 @@ if [[ $REPO == "NVlabs/nvdiffrast" ]]; then
   mv nvdiffrast/common/texture.cpp nvdiffrast/common/textureHost.cpp
   patch -p0 < "$SCRIPT_DIR"/package_specific/nvdiffrast_precompile.patch
 fi
+
+if [[ $REPO == "facebookresearch/sam2" ]]; then
+  # Force the upstream BuildExtensionIgnoreErrors shim to re-raise compile
+  # errors instead of silently shipping a wheel without sam2/_C.so.
+  echo "SAM2_BUILD_ALLOW_ERRORS=0" >> "$GITHUB_ENV"
+fi
