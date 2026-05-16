@@ -14,8 +14,7 @@ on:
         description: "Relative path to package dir (or empty if root)"
         type: string
       torch-version:
-        description: "Torch versions, separated with a comma"
-        required: true
+        description: "Torch versions, separated with a comma (leave blank for non-torch packages)"
         type: string
       limit-python:
         description: "Python versions, separated with a comma"
@@ -125,8 +124,16 @@ jobs:
             PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
           fi
 
+          # Non-torch builds have no torch/cuda discriminator in the version
+          # suffix, so the commit hash is the only thing distinguishing rebuilds
+          # of the same upstream version — force-enable it.
+          INCLUDE_HASH="${{ inputs.include-hash }}"
+          if [[ -z "${{ matrix.torch-version }}" ]]; then
+            INCLUDE_HASH="true"
+          fi
+
           HASH=""
-          if [[ "${{ inputs.include-hash }}" == "true" ]]; then
+          if [[ "$INCLUDE_HASH" == "true" ]]; then
             # Inside the manylinux container, git refuses to run on the
             # host-mounted workspace due to UID mismatch ("dubious ownership").
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -138,7 +145,11 @@ jobs:
             SETUP_PY_DIR="${{ inputs.repo-subdir }}"
           fi
 
-          VERSION_SUFFIX=+${HASH}pt${{ matrix.torch-version }}${{ matrix.compute-platform }}
+          if [[ -n "${{ matrix.torch-version }}" ]]; then
+            VERSION_SUFFIX=+${HASH}pt${{ matrix.torch-version }}${{ matrix.compute-platform }}
+          else
+            VERSION_SUFFIX=+${HASH}
+          fi
           if [[ -f "$SETUP_PY_DIR/pyproject.toml" ]]; then
             sed -i "s/version = \"\([^\"]*\)\"/version = \"\1${VERSION_SUFFIX}\"/w /tmp/changes.txt" $SETUP_PY_DIR/pyproject.toml
           fi
@@ -159,7 +170,7 @@ jobs:
           path: _builder
 
       - name: Install CUDA
-        if: ${{ matrix.compute-platform != 'cpu' }}
+        if: ${{ matrix.compute-platform != '' && matrix.compute-platform != 'cpu' }}
         env:
           CUDA_VERSION: ${{ matrix.compute-platform }}
         run: |
@@ -180,6 +191,7 @@ jobs:
         shell: bash
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.compute-platform }}
+        if: ${{ matrix.torch-version != '' }}
         run: |
           versionlte() {
             [ "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
@@ -207,6 +219,16 @@ jobs:
             numpy$NUMPY_VERSION_LIMIT
         shell: bash
 
+      - name: Install build dependencies (non-torch)
+        if: ${{ matrix.torch-version == '' }}
+        run: |
+          # Pin setuptools<75: upstream xrobotoolkit_sdk's setup.py does
+          # `from distutils.version import LooseVersion` at module top, which
+          # only resolves on Python 3.12+ via setuptools' _distutils_hack shim
+          # (removed in setuptools 80+).
+          pip install --upgrade wheel "setuptools<75" build ninja cmake pybind11
+        shell: bash
+
       - name: Apply package specific steps
         env:
           OS: ${{ runner.os }}
@@ -224,7 +246,7 @@ jobs:
           CUDA_VERSION: ${{ matrix.compute-platform }}
           TORCH_VERSION: ${{ matrix.torch-version }}
         run: |
-          if [[ "${{ matrix.compute-platform }}" != "cpu" ]]; then
+          if [[ -n "${{ matrix.compute-platform }}" && "${{ matrix.compute-platform }}" != "cpu" ]]; then
             source _builder/.github/workflows/cuda/${{ runner.os }}_env.sh
           fi
           source _builder/.github/workflows/env.sh
@@ -235,6 +257,33 @@ jobs:
           fi
 
           python -m build --wheel --no-isolation --outdir dist $SETUP_PY_DIR
+        shell: bash
+
+      - name: Repair wheel (Linux, non-torch)
+        if: ${{ matrix.torch-version == '' && runner.os == 'Linux' }}
+        run: |
+          set -eu
+          mkdir -p dist_repaired
+          for whl in dist/*.whl; do
+            auditwheel repair "$whl" --plat manylinux_2_28_x86_64 -w dist_repaired/
+          done
+          rm dist/*.whl
+          mv dist_repaired/*.whl dist/
+          rmdir dist_repaired
+        shell: bash
+
+      - name: Repair wheel (Windows, non-torch)
+        if: ${{ matrix.torch-version == '' && runner.os == 'Windows' }}
+        run: |
+          set -eu
+          pip install delvewheel
+          mkdir -p dist_repaired
+          for whl in dist/*.whl; do
+            delvewheel repair --add-path lib -w dist_repaired/ "$whl"
+          done
+          rm dist/*.whl
+          mv dist_repaired/*.whl dist/
+          rmdir dist_repaired
         shell: bash
 
       - uses: actions/upload-artifact@v7

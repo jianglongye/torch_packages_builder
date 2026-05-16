@@ -65,6 +65,26 @@ pytorch3d==0.7.6+pt2.9.0cu130
 
 Tested with PyTorch `2.3.0` - `2.11.0` and their respective compute platforms and supported OSes, with an exception for the `rocm` platform.
 
+## Non-torch packages
+
+The build workflow also handles packages that don't depend on PyTorch (native
+pybind11 bindings, etc.). Leave `torch-version` blank when dispatching **Build
+Wheels** — this skips the CUDA/PyTorch install steps and emits a matrix of
+`(OS × python_version)` over Python 3.10–3.13 only. The resulting wheel goes
+through `auditwheel repair` on Linux (`manylinux_2_28_x86_64`) and
+`delvewheel repair` on Windows, so the bundled native `.so`/`.dll` ships
+inside the wheel.
+
+Version string is `<pkg>-<ver>+<hash>` (no `pt…` tail). Example:
+
+```bash
+pip install --extra-index-url https://jianglongye.github.io/torch_packages_builder \
+    xrobotoolkit_sdk==1.0.2+abcdefg
+```
+
+Per-package native-lib staging (clone, build, copy headers + .so/.dll) is
+handled in `package_specific.sh`.
+
 ## Pitfalls
 
 - **No Support for Pip Cache:**

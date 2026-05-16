@@ -45,8 +45,14 @@ def add_os(oses_list: list, os_name: str, os_env_var: str):
         oses_list.append(os_name)
 
 
+NON_TORCH_PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13")
+
+
 def main():
-    torch_versions = os.environ["TORCH_VERSION"].split(",")
+    torch_version_env = os.environ["TORCH_VERSION"]
+    non_torch = not torch_version_env.strip()
+    torch_versions = [] if non_torch else torch_version_env.split(",")
+
     limit_python = os.environ.get("LIMIT_PYTHON")
     if limit_python:
         limit_python = limit_python.split(",")
@@ -62,34 +68,52 @@ def main():
         raise RuntimeError("Select at least one OS")
 
     jobs = []
-    for torch_version in torch_versions:
-        for os_name, python_version, compute_platform in product(
-            oses_names, TORCH_RELEASES[torch_version].python_versions, TORCH_RELEASES[torch_version].compute_platforms
-        ):
-            if os_name == MACOS_ARM64 and compute_platform != "cpu":
-                continue
-            if compute_platform.startswith("rocm"):
-                continue
 
+    if non_torch:
+        for os_name, python_version in product(oses_names, NON_TORCH_PYTHON_VERSIONS):
             if limit_python and python_version not in limit_python:
                 continue
-            if limit_compute_platform and compute_platform not in limit_compute_platform:
-                continue
-
-            if torch_version.startswith("2.5") and python_version == "3.13" and os_name != LINUX_X64:
-                continue
-
-            pv = [int(x) for x in python_version.replace("t", "").split(".")]
+            pv = [int(x) for x in python_version.split(".")]
             if os_name == MACOS_ARM64 and pv[1] <= 9:
                 continue
-
             jobs.append({
                 "os": os_name,
-                "torch-version": torch_version,
+                "torch-version": "",
                 "python-version": python_version,
-                "compute-platform": compute_platform,
+                "compute-platform": "",
                 "container": "quay.io/pypa/manylinux_2_28_x86_64" if os_name == LINUX_X64 else "",
             })
+    else:
+        for torch_version in torch_versions:
+            for os_name, python_version, compute_platform in product(
+                oses_names,
+                TORCH_RELEASES[torch_version].python_versions,
+                TORCH_RELEASES[torch_version].compute_platforms,
+            ):
+                if os_name == MACOS_ARM64 and compute_platform != "cpu":
+                    continue
+                if compute_platform.startswith("rocm"):
+                    continue
+
+                if limit_python and python_version not in limit_python:
+                    continue
+                if limit_compute_platform and compute_platform not in limit_compute_platform:
+                    continue
+
+                if torch_version.startswith("2.5") and python_version == "3.13" and os_name != LINUX_X64:
+                    continue
+
+                pv = [int(x) for x in python_version.replace("t", "").split(".")]
+                if os_name == MACOS_ARM64 and pv[1] <= 9:
+                    continue
+
+                jobs.append({
+                    "os": os_name,
+                    "torch-version": torch_version,
+                    "python-version": python_version,
+                    "compute-platform": compute_platform,
+                    "container": "quay.io/pypa/manylinux_2_28_x86_64" if os_name == LINUX_X64 else "",
+                })
 
     if not jobs:
         raise RuntimeError("No jobs to do")
