@@ -10,6 +10,8 @@ class PlatformWheel(bdist_wheel):
 
     def get_tag(self):
         _python, _abi, plat = super().get_tag()
+        if plat == "linux_x86_64":
+            plat = "manylinux_2_28_x86_64"
         return "py3", "none", plat
 
 
