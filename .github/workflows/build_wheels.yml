@@ -265,7 +265,7 @@ jobs:
         shell: bash
 
       - name: Repair wheel (Linux, non-torch)
-        if: ${{ matrix.torch-version == '' && runner.os == 'Linux' }}
+        if: ${{ matrix.torch-version == '' && runner.os == 'Linux' && inputs.repo-subdir != 'packages/manus_sdk_runtime' }}
         run: |
           set -eu
           mkdir -p dist_repaired
@@ -278,7 +278,7 @@ jobs:
         shell: bash
 
       - name: Repair wheel (Windows, non-torch)
-        if: ${{ matrix.torch-version == '' && runner.os == 'Windows' }}
+        if: ${{ matrix.torch-version == '' && runner.os == 'Windows' && inputs.repo-subdir != 'packages/manus_sdk_runtime' }}
         run: |
           set -eu
           pip install delvewheel
