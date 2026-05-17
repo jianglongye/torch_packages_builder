@@ -85,6 +85,24 @@ pip install --extra-index-url https://jianglongye.github.io/torch_packages_build
 Per-package native-lib staging (clone, build, copy headers + .so/.dll) is
 handled in `package_specific.sh`.
 
+### Manus SDK runtime wheel
+
+`packages/manus_sdk_runtime` builds the `manus-sdk-runtime` wheel used by
+RetargetingKit's `manus` extra. Dispatch **Build Wheels** with:
+
+```text
+repo: jianglongye/torch_packages_builder
+repo-subdir: packages/manus_sdk_runtime
+torch-version: <blank>
+limit-python: 3.10
+linux-wheels: true
+windows-wheels: true
+macos-wheels: false
+```
+
+Set repository secrets `MANUS_SDK_LINUX_URL` and `MANUS_SDK_WINDOWS_URL` to
+download URLs for `libManusSDK_Integrated.so` and `ManusSDK.dll`.
+
 ## Pitfalls
 
 - **No Support for Pip Cache:**

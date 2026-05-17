@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manus-sdk-runtime"
+version = "0.1.0"
+description = "Runtime native Manus SDK libraries for retargetingkit"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+manus_sdk_runtime = ["py.typed", "lib/linux/*", "lib/windows/*"]

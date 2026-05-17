@@ -65,3 +65,17 @@ if [[ $REPO == "XR-Robotics/XRoboToolkit-PC-Service-Pybind" ]]; then
   PYBIND11_CMAKE_DIR=$(python -m pybind11 --cmakedir)
   echo "CMAKE_PREFIX_PATH=$PYBIND11_CMAKE_DIR" >> "$GITHUB_ENV"
 fi
+
+if [[ $REPO == "jianglongye/torch_packages_builder" && ${REPO_SUBDIR:-} == "packages/manus_sdk_runtime" ]]; then
+  PKG_LIB_DIR="packages/manus_sdk_runtime/src/manus_sdk_runtime/lib"
+  if [[ $OS == "Linux" ]]; then
+    mkdir -p "$PKG_LIB_DIR/linux"
+    curl -L "${MANUS_SDK_LINUX_URL:?Set MANUS_SDK_LINUX_URL secret}" -o "$PKG_LIB_DIR/linux/libManusSDK_Integrated.so"
+  elif [[ $OS == "Windows" ]]; then
+    mkdir -p "$PKG_LIB_DIR/windows"
+    curl -L "${MANUS_SDK_WINDOWS_URL:?Set MANUS_SDK_WINDOWS_URL secret}" -o "$PKG_LIB_DIR/windows/ManusSDK.dll"
+  else
+    echo "manus-sdk-runtime only supports Linux and Windows wheels" >&2
+    exit 1
+  fi
+fi

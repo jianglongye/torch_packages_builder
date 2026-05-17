@@ -46,10 +46,12 @@ def add_os(oses_list: list, os_name: str, os_env_var: str):
 
 
 NON_TORCH_PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13")
+MANUS_SDK_RUNTIME_SUBDIR = "packages/manus_sdk_runtime"
 
 
 def main():
     torch_version_env = os.environ["TORCH_VERSION"]
+    repo_subdir = os.environ.get("REPO_SUBDIR", "")
     non_torch = not torch_version_env.strip()
     torch_versions = [] if non_torch else torch_version_env.split(",")
 
@@ -70,7 +72,10 @@ def main():
     jobs = []
 
     if non_torch:
-        for os_name, python_version in product(oses_names, NON_TORCH_PYTHON_VERSIONS):
+        python_versions = ("3.10",) if repo_subdir == MANUS_SDK_RUNTIME_SUBDIR else NON_TORCH_PYTHON_VERSIONS
+        for os_name, python_version in product(oses_names, python_versions):
+            if repo_subdir == MANUS_SDK_RUNTIME_SUBDIR and os_name == MACOS_ARM64:
+                continue
             if limit_python and python_version not in limit_python:
                 continue
             pv = [int(x) for x in python_version.split(".")]
