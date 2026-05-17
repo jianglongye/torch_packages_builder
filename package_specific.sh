@@ -68,12 +68,14 @@ fi
 
 if [[ $REPO == "jianglongye/torch_packages_builder" && ${REPO_SUBDIR:-} == "packages/manus_sdk_runtime" ]]; then
   PKG_LIB_DIR="packages/manus_sdk_runtime/src/manus_sdk_runtime/lib"
+  MANUS_SDK_LINUX_URL=${MANUS_SDK_LINUX_URL:-"https://github.com/jianglongye/torch_packages_builder/releases/download/manus-sdk-native/libManusSDK_Integrated.so"}
+  MANUS_SDK_WINDOWS_URL=${MANUS_SDK_WINDOWS_URL:-"https://github.com/jianglongye/torch_packages_builder/releases/download/manus-sdk-native/ManusSDK.dll"}
   if [[ $OS == "Linux" ]]; then
     mkdir -p "$PKG_LIB_DIR/linux"
-    curl -L "${MANUS_SDK_LINUX_URL:?Set MANUS_SDK_LINUX_URL secret}" -o "$PKG_LIB_DIR/linux/libManusSDK_Integrated.so"
+    curl -L "$MANUS_SDK_LINUX_URL" -o "$PKG_LIB_DIR/linux/libManusSDK_Integrated.so"
   elif [[ $OS == "Windows" ]]; then
     mkdir -p "$PKG_LIB_DIR/windows"
-    curl -L "${MANUS_SDK_WINDOWS_URL:?Set MANUS_SDK_WINDOWS_URL secret}" -o "$PKG_LIB_DIR/windows/ManusSDK.dll"
+    curl -L "$MANUS_SDK_WINDOWS_URL" -o "$PKG_LIB_DIR/windows/ManusSDK.dll"
   else
     echo "manus-sdk-runtime only supports Linux and Windows wheels" >&2
     exit 1

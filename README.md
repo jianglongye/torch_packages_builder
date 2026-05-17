@@ -100,8 +100,9 @@ windows-wheels: true
 macos-wheels: false
 ```
 
-Set repository secrets `MANUS_SDK_LINUX_URL` and `MANUS_SDK_WINDOWS_URL` to
-download URLs for `libManusSDK_Integrated.so` and `ManusSDK.dll`.
+The build downloads native assets from the `manus-sdk-native` release by
+default. Repository secrets `MANUS_SDK_LINUX_URL` and `MANUS_SDK_WINDOWS_URL`
+can override those URLs.
 
 ## Pitfalls
 
