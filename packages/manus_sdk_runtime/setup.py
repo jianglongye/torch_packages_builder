@@ -8,5 +8,9 @@ class PlatformWheel(bdist_wheel):
         self.root_is_pure = False
         self.python_tag = "py3"
 
+    def get_tag(self):
+        _python, _abi, plat = super().get_tag()
+        return "py3", "none", plat
+
 
 setup(cmdclass={"bdist_wheel": PlatformWheel})
