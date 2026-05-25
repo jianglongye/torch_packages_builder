@@ -30,6 +30,7 @@ fi
 
 if [[ $REPO == "NVlabs/curobo" ]]; then
   sed -i 's/"setuptools_scm>=6.2", //' pyproject.toml
+  echo "MAX_JOBS=1" >> "$GITHUB_ENV"
 fi
 
 if [[ $REPO == "facebookresearch/sam2" ]]; then
