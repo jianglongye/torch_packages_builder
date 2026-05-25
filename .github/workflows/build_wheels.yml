@@ -148,6 +148,15 @@ jobs:
           if [ ! -s "/tmp/changes.txt" ]; then
             sed -i "s/\(\(    \|\t\)name=.*\,$\)/\1\n    version=\"0.0.1\" + \"$VERSION_SUFFIX\",/w /tmp/changes.txt" $SETUP_PY_DIR/setup.py
           fi
+          if [ ! -s "/tmp/changes.txt" ] && [[ -f "$SETUP_PY_DIR/setup.cfg" ]]; then
+            BASE_VERSION="${{ inputs.repo-tag }}"
+            BASE_VERSION="${BASE_VERSION#v}"
+            if ! echo "$BASE_VERSION" | grep -qE '^[0-9]+\.[0-9]+'; then
+              BASE_VERSION="0.0.0"
+            fi
+            sed -i "/^\[metadata\]/a version = ${BASE_VERSION}${VERSION_SUFFIX}" "$SETUP_PY_DIR/setup.cfg"
+            grep -q "^version = " "$SETUP_PY_DIR/setup.cfg" && echo "setup.cfg patched" > /tmp/changes.txt
+          fi
           if [ ! -s "/tmp/changes.txt" ]; then
             exit 1
           fi
