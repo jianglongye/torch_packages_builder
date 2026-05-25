@@ -88,7 +88,7 @@ def main():
                 "torch-version": torch_version,
                 "python-version": python_version,
                 "compute-platform": compute_platform,
-                "container": "quay.io/pypa/manylinux_2_28_x86_64" if os_name == LINUX_X64 else "",
+                "container": "quay.io/pypa/manylinux_2_28_x86_64:2026.05.07-1" if os_name == LINUX_X64 else "",
             })
 
     if not jobs:
