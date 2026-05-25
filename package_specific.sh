@@ -28,6 +28,10 @@ if [[ $REPO == "NVlabs/nvdiffrast" ]]; then
   patch -p0 < "$SCRIPT_DIR"/package_specific/nvdiffrast_precompile.patch
 fi
 
+if [[ $REPO == "NVlabs/curobo" ]]; then
+  sed -i 's/"setuptools_scm>=6.2", //' pyproject.toml
+fi
+
 if [[ $REPO == "facebookresearch/sam2" ]]; then
   # Force the upstream BuildExtensionIgnoreErrors shim to re-raise compile
   # errors instead of silently shipping a wheel without sam2/_C.so.
