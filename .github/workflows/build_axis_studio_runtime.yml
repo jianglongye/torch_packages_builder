@@ -1,0 +1,72 @@
+name: Build Axis Studio Runtime
+
+on:
+  workflow_dispatch:
+
+env:
+  PACKAGE_DIR: packages/axis_studio_sdk_runtime
+  NATIVE_URL: https://github.com/jianglongye/torch_packages_builder/releases/download/axis-studio-sdk-native/librobotapi_x86-64.so
+  NATIVE_SHA256: bee36adb6e070e8c013f51bdeac2a880e81626ec0cb31a86ccb1cae0a9bc5a8f
+
+jobs:
+  build-runtime:
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v9
+
+      - name: Stage native library
+        run: |
+          set -eu
+          target="$PACKAGE_DIR/src/axis_studio_sdk_runtime/lib/linux/librobotapi_x86-64.so"
+          curl --fail --location --show-error "$NATIVE_URL" --output "$target"
+          printf '%s  %s\n' "$NATIVE_SHA256" "$target" | sha256sum --check
+
+      - name: Set version
+        id: version
+        run: |
+          set -eu
+          hash=$(git rev-parse --short HEAD)
+          version="0.1.0+$hash"
+          sed -i "s/version = \"0.1.0\"/version = \"$version\"/" "$PACKAGE_DIR/pyproject.toml"
+          printf 'release_name=axis_studio_sdk_runtime-%s\n' "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build and validate wheel
+        run: |
+          set -eu
+          uv build --wheel --out-dir dist "$PACKAGE_DIR"
+          wheel=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
+          uvx auditwheel show "$wheel"
+          unzip -l "$wheel"
+
+          test_venv=$(mktemp -d)
+          uv venv "$test_venv"
+          uv pip install --python "$test_venv/bin/python" "$wheel"
+          VIRTUAL_ENV="$test_venv" uv run --active --no-project python -m doctest -v \
+            "$PACKAGE_DIR/src/axis_studio_sdk_runtime/__init__.py"
+          VIRTUAL_ENV="$test_venv" uv run --active --no-project python -c \
+            'from ctypes import cdll; from axis_studio_sdk_runtime import library_path; path = library_path(); print(path); print(path.is_file()); print(cdll.LoadLibrary(str(path)))'
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*.whl
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.release_name }}
+          artifacts: dist/*.whl
+
+  make-packages-index:
+    needs: build-runtime
+    permissions:
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/make_packages_index.yml

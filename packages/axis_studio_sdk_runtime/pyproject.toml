@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools >= 70.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axis-studio-sdk-runtime"
+version = "0.1.0"
+description = "Runtime native Axis Studio SDK library for RetargetingKit"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+axis_studio_sdk_runtime = ["lib/linux/*.so"]
