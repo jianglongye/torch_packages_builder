@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools >= 70.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sharpa-wave-sdk"
+version = "5.0.2"
+description = "Vendor Sharpa Wave hand SDK (Python bindings and native libraries) for RetargetingKit"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["sharpa"]
+
+[tool.setuptools.package-data]
+sharpa = ["*.so", "*.pyi", "py.typed", "lib/*.so*"]
