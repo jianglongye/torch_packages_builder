@@ -1,0 +1,81 @@
+name: Build Sharpa Wave SDK
+
+on:
+  workflow_dispatch:
+
+env:
+  PACKAGE_DIR: packages/sharpa_wave_sdk
+  SDK_URL: https://github.com/jianglongye/torch_packages_builder/releases/download/sharpa-wave-sdk-native/SDK_5_0_2_native.tar.gz
+  SDK_SHA256: 7d01cc2995fcdb748e4751b3d5d2befeaba8a575c014cd55ae4442a2dfbc3399
+  SDK_VERSION: 5.0.2
+  WHEEL_PLATFORM: manylinux_2_31_x86_64  # auditwheel: GLIBCXX_3.4.26 in the vendor libraries needs manylinux_2_31
+
+jobs:
+  build-sdk:
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v9.0.0
+
+      - name: Fetch vendor SDK
+        run: |
+          set -eu
+          curl --fail --location --show-error "$SDK_URL" --output sdk.tar.gz
+          printf '%s  %s\n' "$SDK_SHA256" sdk.tar.gz | sha256sum --check
+
+      - name: Set version
+        id: version
+        run: |
+          set -eu
+          version="$SDK_VERSION+$(git rev-parse --short HEAD)"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+          printf 'release_name=sharpa_wave_sdk-%s\n' "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build wheels
+        run: |
+          set -eu
+          uv run --no-project --python 3.13 "$PACKAGE_DIR/build_wheels.py" sdk.tar.gz \
+            --version "${{ steps.version.outputs.version }}" --platform "$WHEEL_PLATFORM" --out-dir dist
+          ls -l dist
+
+      - name: Validate wheels
+        run: |
+          set -eu
+          for wheel in dist/*.whl; do
+            echo "::group::$wheel"
+            unzip -l "$wheel"
+            uvx auditwheel show "$wheel" || true
+            tag=$(basename "$wheel" | cut -d- -f3)
+            python="3.${tag#cp3}"
+            test_venv=$(mktemp -d)
+            uv venv --python "$python" "$test_venv"
+            uv pip install --python "$test_venv/bin/python" "$wheel"
+            # Imports with a clean environment: fails if the RUNPATH patch or a bundled library is wrong.
+            env -u LD_LIBRARY_PATH "$test_venv/bin/python" -c \
+              'import sharpa; from sharpa import ControlMode, ControlSource, SharpaWaveManager; print(sharpa.__file__)'
+            echo "::endgroup::"
+          done
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*.whl
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.release_name }}
+          artifacts: dist/*.whl
+
+  make-packages-index:
+    needs: build-sdk
+    permissions:
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/make_packages_index.yml
