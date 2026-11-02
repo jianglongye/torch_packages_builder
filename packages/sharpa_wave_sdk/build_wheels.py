@@ -1,7 +1,8 @@
 """Repack the vendor Sharpa SDK tarball (unpacks to SDK/) into one wheel per prebuilt CPython extension.
 
 Wheel layout: sharpa/{__init__.py, sharpa.cpython-3XY-*.so, lib/libsharpa-wave-sdk.so, lib/libSharpaWaveSDKWrapper.so}.
-The extension and the wrapper get an $ORIGIN-relative RUNPATH, so no LD_LIBRARY_PATH is needed at import time.
+The extension and the wrapper get an $ORIGIN-relative RUNPATH, so no LD_LIBRARY_PATH is needed at import time,
+and the executable-stack flag is cleared so newer glibc can load the vendor library.
 
     python build_wheels.py SDK_5_0_2.tar.gz --version 5.0.2+abc1234 --platform manylinux_2_31_x86_64 --out-dir dist
 """
@@ -41,8 +42,10 @@ def build_one(sdk: Path, ext: Path, minor: str, version: str, platform: str, out
     for name in REQUIRED_LIBS:
         assert (lib_dir / name).is_file(), f"{name} missing from SDK/lib"
 
+    # libsharpa-wave-sdk.so ships with an RWE PT_GNU_STACK; glibc >= 2.41 refuses to dlopen it
+    # ("cannot enable executable stack"), so clear the flag.
     for lib in lib_dir.glob("*.so*"):
-        patchelf("--set-rpath", "$ORIGIN", str(lib))
+        patchelf("--clear-execstack", "--set-rpath", "$ORIGIN", str(lib))
     patchelf("--set-rpath", "$ORIGIN/lib", str(package / ext.name))
 
     pyproject = staging / "pyproject.toml"
